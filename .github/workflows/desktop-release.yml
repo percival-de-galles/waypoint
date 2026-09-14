@@ -37,16 +37,18 @@ jobs:
             target: nsis
             arch: x64
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: voidzero-dev/setup-vp@v1
+      - uses: actions/setup-node@v5
         with:
           node-version-file: package.json
-          cache: true
-          run-install: false
+          cache: pnpm
+
+      - name: Install pnpm
+        run: npm install --global pnpm@11.10.0
 
       - name: Install desktop dependencies
-        run: vp install --filter=@waypoint/desktop... --filter=waypoint... --filter=@waypoint/scripts...
+        run: pnpm install --filter=@waypoint/desktop... --filter=waypoint... --filter=@waypoint/scripts...
 
       - uses: dtolnay/rust-toolchain@stable
 
@@ -74,14 +76,14 @@ jobs:
       - name: Build unsigned desktop artifact
         shell: bash
         run: |
-          vp run dist:desktop:artifact \
+          pnpm run dist:desktop:artifact \
             --platform "${{ matrix.platform }}" \
             --target "${{ matrix.target }}" \
             --arch "${{ matrix.arch }}" \
             --build-version "$WAYPOINT_RELEASE_VERSION" \
             --verbose
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         with:
           name: desktop-${{ matrix.platform }}-${{ matrix.arch }}
           path: |
@@ -95,7 +97,7 @@ jobs:
     needs: build
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v5
         with:
           pattern: desktop-*
           merge-multiple: true
