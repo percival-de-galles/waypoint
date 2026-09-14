@@ -1,0 +1,9 @@
+src/
+pkg/
+*.AppImage
+*.pkg.tar.zst
+.SRCINFO
+waypoint-bin-*.png
+waypoint-bin-*-LICENSE
+waypoint-nightly-bin-*.png
+waypoint-nightly-bin-*-LICENSE

@@ -1,0 +1,17 @@
+{
+  "name": "@waypoint/mobile-terminal-native",
+  "version": "0.0.0",
+  "private": true,
+  "expo-module": {
+    "ios": {
+      "modules": [
+        "WaypointTerminalModule"
+      ]
+    },
+    "android": {
+      "modules": [
+        "expo.modules.waypointterminal.WaypointTerminalModule"
+      ]
+    }
+  }
+}

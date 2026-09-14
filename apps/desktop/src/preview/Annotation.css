@@ -1,0 +1,68 @@
+@import "tailwindcss";
+
+@theme inline {
+  --font-sans: var(--waypoint-font-sans);
+  --font-mono: var(--waypoint-font-mono);
+  --color-background: var(--waypoint-background);
+  --color-foreground: var(--waypoint-foreground);
+  --color-popover: var(--waypoint-popover);
+  --color-popover-foreground: var(--waypoint-popover-foreground);
+  --color-primary: var(--waypoint-primary);
+  --color-primary-foreground: var(--waypoint-primary-foreground);
+  --color-muted: var(--waypoint-muted);
+  --color-muted-foreground: var(--waypoint-muted-foreground);
+  --color-accent: var(--waypoint-accent);
+  --color-accent-foreground: var(--waypoint-accent-foreground);
+  --color-border: var(--waypoint-border);
+  --color-input: var(--waypoint-input);
+  --color-ring: var(--waypoint-ring);
+  --radius-sm: calc(var(--waypoint-radius) - 4px);
+  --radius-md: calc(var(--waypoint-radius) - 2px);
+  --radius-lg: var(--waypoint-radius);
+  --radius-xl: calc(var(--waypoint-radius) + 4px);
+  --radius-2xl: calc(var(--waypoint-radius) + 8px);
+}
+
+:host {
+  --waypoint-font-sans:
+    "DM Sans Variable", "DM Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui,
+    sans-serif;
+  --waypoint-font-mono:
+    "SF Mono", "SFMono-Regular", "JetBrains Mono", Consolas, "Liberation Mono", Menlo, monospace;
+  --waypoint-radius: 0.625rem;
+  --waypoint-background: white;
+  --waypoint-foreground: oklch(0.269 0 0);
+  --waypoint-popover: white;
+  --waypoint-popover-foreground: oklch(0.269 0 0);
+  --waypoint-primary: oklch(0.488 0.217 264);
+  --waypoint-primary-foreground: white;
+  --waypoint-muted: rgb(0 0 0 / 4%);
+  --waypoint-muted-foreground: oklch(0.556 0 0);
+  --waypoint-accent: rgb(0 0 0 / 4%);
+  --waypoint-accent-foreground: oklch(0.269 0 0);
+  --waypoint-border: rgb(0 0 0 / 8%);
+  --waypoint-input: rgb(0 0 0 / 10%);
+  --waypoint-ring: oklch(0.488 0.217 264);
+  color: var(--waypoint-foreground);
+  font-family: var(--waypoint-font-sans);
+}
+
+* {
+  box-sizing: border-box;
+  border-color: var(--waypoint-border);
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--waypoint-ring) 72%, transparent);
+  outline-offset: 1px;
+}

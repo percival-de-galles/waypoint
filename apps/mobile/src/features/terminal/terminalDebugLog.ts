@@ -1,0 +1,24 @@
+/**
+ * Debug logging for the mobile terminal pipeline. Prefix: `[waypoint-terminal]`.
+ *
+ * Enabled when `__DEV__` is true, or set `globalThis.__WAYPOINT_TERMINAL_DEBUG__ = true` in a JS
+ * debugger / Metro console to trace release/TestFlight builds.
+ */
+export function isTerminalDebugEnabled(): boolean {
+  return (
+    (typeof __DEV__ !== "undefined" && __DEV__) ||
+    (typeof globalThis !== "undefined" &&
+      (globalThis as { __WAYPOINT_TERMINAL_DEBUG__?: boolean }).__WAYPOINT_TERMINAL_DEBUG__ === true)
+  );
+}
+
+export function terminalDebugLog(message: string, data?: Record<string, unknown>): void {
+  if (!isTerminalDebugEnabled()) {
+    return;
+  }
+  if (data !== undefined) {
+    console.log(`[waypoint-terminal] ${message}`, data);
+  } else {
+    console.log(`[waypoint-terminal] ${message}`);
+  }
+}
