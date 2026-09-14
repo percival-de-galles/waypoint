@@ -127,6 +127,18 @@ describe("providersWithLimits", () => {
       ]),
     ).toEqual([codex]);
   });
+
+  it("keeps an independent subscription meter visible when its harness is disabled", () => {
+    const limits = { checkedAt: "2026-09-03T11:00:00.000Z", windows: [window] };
+    const meter = provider({
+      instanceId: ProviderInstanceId.make("pi"),
+      driver: ProviderDriverKind.make("piAgent"),
+      enabled: false,
+      usageLimits: limits,
+      usageLimitsDriver: ProviderDriverKind.make("opencode"),
+    });
+    expect(providersWithLimits([meter])).toEqual([meter]);
+  });
 });
 
 describe("collectLimitsGroups", () => {

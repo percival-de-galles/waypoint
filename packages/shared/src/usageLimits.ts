@@ -26,7 +26,8 @@ const HOUR = 60 * MINUTE;
 const DAY = 24 * HOUR;
 
 /**
- * Providers that belong on the Limits view: enabled, installed, and one whose
+ * Providers that belong on the Limits view: enabled (or explicitly carrying
+ * an independent subscription meter), installed, and one whose
  * driver reports subscription usage at all. A driver with no notion of usage
  * never sets `usageLimits`, so it has no row rather than an empty one.
  */
@@ -35,7 +36,7 @@ export function providersWithLimits(
 ): readonly ServerProvider[] {
   return providers.filter(
     (provider) =>
-      provider.enabled &&
+      (provider.enabled || provider.usageLimitsDriver !== undefined) &&
       provider.installed &&
       isProviderAvailable(provider) &&
       provider.usageLimits !== undefined,
@@ -102,7 +103,7 @@ export function collectLimitSources(
   const nativeAccounts = new Set<string>();
   for (const presentation of presentations.values()) {
     for (const provider of providersWithLimits(presentation.serverConfig?.providers ?? [])) {
-      const key = accountKey(provider.driver, provider.auth.email);
+      const key = accountKey(provider.usageLimitsDriver ?? provider.driver, provider.auth.email);
       if (
         key !== null &&
         provider.usageLimits?.windows.length &&
@@ -159,6 +160,8 @@ function accountKey(driver: ServerProvider["driver"], email: string | undefined)
 export interface LimitAccount {
   readonly key: string;
   readonly driver: ServerProvider["driver"];
+  /** The harness which supplied this subscription credential, if distinct. */
+  readonly sourceDriver: ServerProvider["driver"] | undefined;
   /** The instance's configured name, which is not sensitive; null for hub accounts. */
   readonly displayName: string | null;
   readonly email: string | undefined;
@@ -247,6 +250,7 @@ export function collectLimitAccounts(
           ? { resetCredits: creditSource.limits.resetCredits }
           : { resetCredits: undefined }),
       },
+      sourceDriver: winner.sourceDriver,
     });
   };
   for (const [environmentId, presentation] of presentations) {
@@ -254,12 +258,14 @@ export function collectLimitAccounts(
     for (const provider of providersWithLimits(presentation.serverConfig?.providers ?? [])) {
       if (!provider.usageLimits || limitsNotice(provider.usageLimits) !== null) continue;
       merge(
-        accountKey(provider.driver, provider.auth.email) ??
+        accountKey(provider.usageLimitsDriver ?? provider.driver, provider.auth.email) ??
           `${environmentId}:${provider.instanceId}`,
         {
           key: `${environmentId}:${provider.instanceId}`,
-          driver: provider.driver,
-          displayName: provider.displayName?.trim() || null,
+          driver: provider.usageLimitsDriver ?? provider.driver,
+          sourceDriver: provider.usageLimitsSourceDriver,
+          displayName:
+            provider.usageLimitsDisplayName?.trim() || provider.displayName?.trim() || null,
           email: provider.auth.email,
           plan: provider.auth.label,
           accentColor: provider.accentColor,
@@ -285,6 +291,7 @@ export function collectLimitAccounts(
         merge(accountKey(account.driver, account.email) ?? `${source.id}:${account.id}`, {
           key: `${source.id}:${account.id}`,
           driver: account.driver,
+          sourceDriver: undefined,
           displayName: account.email ? null : account.id.replace(/\.json$/i, ""),
           email: account.email,
           plan: account.plan,
@@ -328,7 +335,10 @@ export function collectLimitNotices(
       // failed, or reported nothing at all, is worth a line.
       if (provider.usageLimits?.unavailable?.reason === "unsupported") continue;
       const notice = provider.usageLimits ? limitsNotice(provider.usageLimits) : null;
-      const name = provider.displayName?.trim() || String(provider.driver);
+      const name =
+        provider.usageLimitsDisplayName?.trim() ||
+        provider.displayName?.trim() ||
+        String(provider.driver);
       if (notice) notices.push(`${label(environmentLabel, name)}: ${notice}`);
     }
     for (const source of presentation.serverConfig?.usageLimitSources ?? []) {
@@ -689,8 +699,8 @@ export function collectProviderUsageLimits(
           Date.parse(provider.usageLimits.checkedAt));
     accounts.push({
       id: provider.instanceId,
-      driver: provider.driver,
-      label: `${provider.displayName?.trim() || String(provider.driver)} [${provider.instanceId}]`,
+      driver: provider.usageLimitsDriver ?? provider.driver,
+      label: `${provider.usageLimitsDisplayName?.trim() || provider.displayName?.trim() || String(provider.driver)} [${provider.instanceId}]`,
       ...(provider.auth.label ? { plan: provider.auth.label } : {}),
       instanceId: provider.instanceId,
       resetCreditInput:
@@ -701,7 +711,9 @@ export function collectProviderUsageLimits(
               creditId: hubCreditId,
             }
           : { instanceId: provider.instanceId },
-      ...(provider.displayName ? { displayName: provider.displayName } : {}),
+      ...(provider.usageLimitsDisplayName || provider.displayName
+        ? { displayName: provider.usageLimitsDisplayName ?? provider.displayName }
+        : {}),
       ...(provider.accentColor ? { accentColor: provider.accentColor } : {}),
       ...(provider.auth.email ? { email: provider.auth.email } : {}),
       limits: showHubCredits

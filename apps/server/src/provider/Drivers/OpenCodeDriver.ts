@@ -157,13 +157,18 @@ export const OpenCodeDriver: ProviderDriver<OpenCodeSettings, OpenCodeDriverEnv>
           // An external OpenCode server owns its own credentials; only the
           // local process environment can safely identify this instance's Go account.
           const apiKey =
-            effectiveConfig.enabled && !effectiveConfig.serverUrl.trim()
+            !effectiveConfig.serverUrl.trim()
               ? processEnv.OPENCODE_API_KEY?.trim()
               : undefined;
           return apiKey
             ? readOpenCodeGoUsageLimits(apiKey, provider.checkedAt).pipe(
                 Effect.provideService(HttpClient.HttpClient, httpClient),
-                Effect.map((usageLimits) => ({ ...provider, usageLimits })),
+                Effect.map((usageLimits) => ({
+                  ...provider,
+                  usageLimits,
+                  usageLimitsDisplayName: "OpenCode Go",
+                  usageLimitsDriver: ProviderDriverKind.make("opencode"),
+                })),
               )
             : Effect.succeed(provider);
         }),

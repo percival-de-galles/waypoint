@@ -72,17 +72,35 @@ function AccountAvatar({
 }) {
   if (account.redeem) {
     return (
-      <ProviderInstanceIcon
-        driverKind={account.driver}
-        displayName={
-          account.displayName ?? getDriverOption(account.driver)?.label ?? String(account.driver)
-        }
-        accentColor={account.accentColor}
-        showBadge={Boolean(account.displayName)}
-        indicatorBackground="var(--popover)"
-        className={cn("size-5", className)}
-        iconClassName="size-4 text-foreground/80"
-      />
+      <span className={cn("inline-flex items-center gap-0.5", className)}>
+        <ProviderInstanceIcon
+          driverKind={account.driver}
+          displayName={
+            account.displayName ?? getDriverOption(account.driver)?.label ?? String(account.driver)
+          }
+          accentColor={account.accentColor}
+          showBadge={Boolean(account.displayName) && !account.sourceDriver}
+          indicatorBackground="var(--popover)"
+          className="size-5"
+          iconClassName="size-4 text-foreground/80"
+        />
+        {account.sourceDriver ? (
+          <span
+            className="inline-flex items-center text-muted-foreground"
+            title={`via ${getDriverOption(account.sourceDriver)?.label ?? account.sourceDriver}`}
+          >
+            (
+            <ProviderInstanceIcon
+              driverKind={account.sourceDriver}
+              displayName={getDriverOption(account.sourceDriver)?.label ?? String(account.sourceDriver)}
+              indicatorBackground="var(--popover)"
+              className="size-4"
+              iconClassName="size-3"
+            />
+            )
+          </span>
+        ) : null}
+      </span>
     );
   }
   return account.email ? <AccountChip email={account.email} /> : null;
@@ -509,7 +527,9 @@ function PoolWindowCard({
 
 function PoolSection({ pool, now }: { readonly pool: LimitPool; readonly now: number }) {
   const color = barColor(pool.driver);
-  const label = getDriverOption(pool.driver)?.label ?? String(pool.driver);
+  const label =
+    pool.accounts[0]?.displayName ?? getDriverOption(pool.driver)?.label ?? String(pool.driver);
+  const sourceDriver = pool.accounts[0]?.sourceDriver;
   return (
     <section className="flex flex-col gap-3">
       <h2 className="flex items-center gap-2 text-sm font-medium text-foreground">
@@ -521,6 +541,23 @@ function PoolSection({ pool, now }: { readonly pool: LimitPool; readonly now: nu
           iconClassName="size-4 text-foreground/80"
         />
         {label}
+        {sourceDriver !== undefined &&
+        pool.accounts.every((account) => account.sourceDriver === sourceDriver) ? (
+          <span
+            className="inline-flex items-center text-muted-foreground"
+            title={`via ${getDriverOption(sourceDriver)?.label ?? sourceDriver}`}
+          >
+            (
+            <ProviderInstanceIcon
+              driverKind={sourceDriver}
+              displayName={getDriverOption(sourceDriver)?.label ?? String(sourceDriver)}
+              indicatorBackground="var(--background)"
+              className="size-4"
+              iconClassName="size-3"
+            />
+            )
+          </span>
+        ) : null}
       </h2>
       {pool.windows.map((window) => (
         <PoolWindowCard key={`${window.kind}:${window.id}`} pool={window} color={color} now={now} />

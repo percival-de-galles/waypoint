@@ -118,7 +118,6 @@ export const PiDriver: ProviderDriver<PiSettings, PiDriverEnv> = {
       const snapshotSettings = makeProviderSnapshotSettingsSource(settings, serverSettings);
       const checkProvider = checkPiProviderStatus(settings, modelRuntime).pipe(
         Effect.flatMap((provider) => {
-          if (!settings.enabled) return Effect.succeed(provider);
           return Effect.tryPromise({
             try: () => modelRuntime.getAuth("opencode-go"),
             // A missing or malformed optional Go credential must not make Pi's
@@ -131,7 +130,13 @@ export const PiDriver: ProviderDriver<PiSettings, PiDriverEnv> = {
               return apiKey
                 ? readOpenCodeGoUsageLimits(apiKey, provider.checkedAt).pipe(
                     Effect.provideService(HttpClient.HttpClient, httpClient),
-                    Effect.map((usageLimits) => ({ ...provider, usageLimits })),
+                    Effect.map((usageLimits) => ({
+                      ...provider,
+                      usageLimits,
+                      usageLimitsDisplayName: "OpenCode Go",
+                      usageLimitsDriver: ProviderDriverKind.make("opencode"),
+                      usageLimitsSourceDriver: DRIVER,
+                    })),
                   )
                 : Effect.succeed(provider);
             }),

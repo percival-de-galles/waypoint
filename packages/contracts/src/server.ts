@@ -233,6 +233,14 @@ export const ServerProvider = Schema.Struct({
   workspaceSnapshots: Schema.optionalKey(Schema.Array(ServerProviderWorkspaceSnapshot)),
   // Absent when the driver has no notion of subscription usage.
   usageLimits: Schema.optional(ServerProviderUsageLimits),
+  // Some harnesses can expose a subscription owned by a different product.
+  // This affects only usage presentation, never provider routing or identity.
+  usageLimitsDisplayName: Schema.optional(TrimmedNonEmptyString),
+  // The product whose subscription is being measured. A harness may supply
+  // the credential without owning the subscription (for example Pi -> OpenCode Go).
+  usageLimitsDriver: Schema.optional(ProviderDriverKind),
+  // The harness that supplied the credential, shown as provenance in the UI.
+  usageLimitsSourceDriver: Schema.optional(ProviderDriverKind),
   versionAdvisory: Schema.optionalKey(ServerProviderVersionAdvisory),
   updateState: Schema.optionalKey(ServerProviderUpdateState),
 });
