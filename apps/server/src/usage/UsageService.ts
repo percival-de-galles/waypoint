@@ -59,6 +59,7 @@ import {
   type ScanCache,
 } from "./usageScanCache.ts";
 import type { UsageRecord } from "./usageTranscripts.ts";
+import { readRuntimeUsageRecords } from "./runtimeUsageLedger.ts";
 
 const LITELLM_RATES_URL =
   "https://raw.githubusercontent.com/BerriAI/litellm/main/model_prices_and_context_window.json";
@@ -145,6 +146,7 @@ export const make = Effect.gen(function* () {
 
   const ratesCachePath = path.join(config.stateDir, "usage-model-rates.json");
   const scanCachePath = path.join(config.stateDir, "usage-scan-cache.json");
+  const runtimeUsagePath = path.join(config.stateDir, "usage-runtime.jsonl");
   let rates: RateTable = new Map();
   let ratesFetchedAtMs: number | null = null;
   let ratesStatus: UsagePricing["status"] = "unavailable";
@@ -525,6 +527,22 @@ export const make = Effect.gen(function* () {
         skippedFiles,
         malformedRecords: 0,
         distinctSessions: sessionIds.size,
+        message: null,
+      });
+    }
+
+    const runtimeRecords = yield* Effect.promise(() => readRuntimeUsageRecords(runtimeUsagePath));
+    for (const record of runtimeRecords) aggregator.add(record);
+    for (const provider of ["opencode", "piAgent"] as const) {
+      const records = runtimeRecords.filter((record) => record.provider === provider);
+      if (records.length === 0) continue;
+      sources.push({
+        fingerprint: { hostId, provider, resolvedHomePath: runtimeUsagePath, volumeId: "" },
+        status: "ok",
+        scannedFiles: 1,
+        skippedFiles: 0,
+        malformedRecords: 0,
+        distinctSessions: new Set(records.map((record) => record.sessionId)).size,
         message: null,
       });
     }

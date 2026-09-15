@@ -52,6 +52,8 @@ import { projectActivityPayload } from "../ActivityPayloadProjection.ts";
 import { forkParked } from "../../serverActivation.ts";
 import { ServerSettingsService } from "../../serverSettings.ts";
 import { canReplaceThreadTitle } from "../threadTitles.ts";
+import { ServerConfig } from "../../config.ts";
+import { appendRuntimeUsageRecord } from "../../usage/runtimeUsageLedger.ts";
 
 const providerTurnKey = (threadId: ThreadId, turnId: TurnId) => `${threadId}:${turnId}`;
 const providerTaskKey = (threadId: ThreadId, taskId: string) => `${threadId}:${taskId}`;
@@ -898,6 +900,7 @@ export function runtimeEventToActivities(
 }
 
 const make = Effect.gen(function* () {
+  const serverConfig = yield* ServerConfig;
   const threadBackgroundLiveness = yield* ThreadBackgroundLivenessService;
   const threadPlanProgress = yield* ThreadPlanProgressService;
   const crypto = yield* Crypto.Crypto;
@@ -1549,6 +1552,39 @@ const make = Effect.gen(function* () {
             return true;
         }
       })();
+      if (
+        shouldApplyThreadLifecycle &&
+        event.type === "turn.completed" &&
+        (event.provider === "opencode" || event.provider === "piAgent") &&
+        event.payload.tokenUsage?.usageStatus === "complete" &&
+        thread.modelSelection?.model
+      ) {
+        const usage = event.payload.tokenUsage;
+        yield* Effect.tryPromise(() =>
+          appendRuntimeUsageRecord(`${serverConfig.stateDir}/usage-runtime.jsonl`, {
+            eventId: event.eventId,
+            timestampMs: Date.parse(event.createdAt),
+            provider: event.provider,
+            model: thread.modelSelection.model,
+            sessionId: String(event.threadId),
+            totals: {
+              uncachedInputTokens: Math.max(
+                0,
+                usage.inputTokens - (usage.cachedInputTokens ?? 0) - (usage.cacheCreationTokens ?? 0),
+              ),
+              cachedInputTokens: usage.cachedInputTokens ?? 0,
+              cacheCreationTokens: usage.cacheCreationTokens ?? 0,
+              outputTokens: usage.outputTokens,
+              reasoningTokens: usage.reasoningTokens ?? 0,
+            },
+            reportedCostUsd: event.payload.totalCostUsd ?? null,
+          }),
+        ).pipe(
+          Effect.catchCause((cause) =>
+            Effect.logWarning("could not persist runtime usage", { eventId: event.eventId, cause }),
+          ),
+        );
+      }
       const acceptedTurnStartedSourcePlan =
         event.type === "turn.started" && shouldApplyThreadLifecycle
           ? yield* getSourceProposedPlanReferenceForAcceptedTurnStart(thread.id, eventTurnId)

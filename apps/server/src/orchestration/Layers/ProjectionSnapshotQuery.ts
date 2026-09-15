@@ -143,6 +143,7 @@ const ProjectionThreadSessionDbRowSchema = ProjectionThreadSession;
 const ProjectionThreadRuntimeContextDbRowSchema = Schema.Struct({
   id: ThreadId,
   title: Schema.String,
+  modelSelection: Schema.optional(Schema.fromJsonString(ModelSelection)),
   session: Schema.NullOr(ProjectionThreadSessionDbRowSchema),
 });
 const ProjectionCheckpointDbRowSchema = ProjectionCheckpoint.mapFields(
@@ -1232,6 +1233,7 @@ const makeProjectionSnapshotQuery = Effect.gen(function* () {
         SELECT
           threads.thread_id AS id,
           threads.title,
+          threads.model_selection_json AS "modelSelection",
           sessions.thread_id AS "threadId",
           sessions.status,
           sessions.provider_name AS "providerName",
@@ -3165,6 +3167,7 @@ pending_approval_requests AS (
       return Option.map(context, (row) => ({
         id: row.id,
         title: row.title,
+        ...(row.modelSelection ? { modelSelection: row.modelSelection } : {}),
         session: row.session === null ? null : mapSessionRow(row.session),
       }));
     });
